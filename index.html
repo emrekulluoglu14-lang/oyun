@@ -26,7 +26,7 @@ background:linear-gradient(#3fb6e6,#2f9ccb)}
  position:absolute;left:10px;top:10px;
  background:#fff;padding:8px;border-radius:10px
 }
-button{background:#1aa260;color:#fff;border:0;border-radius:8px;padding:6px 10px}
+button{background:#1aa260;color:#fff;border:0;border-radius:8px;padding:6px 10px;margin:4px 0}
 .recycleItem{font-size:26px;cursor:pointer;padding:4px;border-radius:6px}
 .recycleItem.selected{background:#c7f9cc}
 .bin{flex:1;background:#f3f4f6;padding:8px;border-radius:8px;text-align:center;font-weight:bold}
@@ -35,6 +35,191 @@ button{background:#1aa260;color:#fff;border:0;border-radius:8px;padding:6px 10px
 
 <body>
 <div id="wrap">
+<h2>🌍 Deniz Temizliği & Geri Dönüşüm</h2>
+
+<div id="area">
+ <div class="sea"></div>
+ <div class="sand"></div>
+
+ <div class="hud">
+  Skor: <b id="score">0</b><br>
+  Görev: <span id="missionText">Yok</span>
+ </div>
+
+ <div class="panel">
+  <b>Toplam Toplanan Çöp</b>
+  <div id="count" style="font-size:22px;text-align:center">0</div>
+  <hr>
+  <input id="playerName" placeholder="İsmin" style="width:100%;padding:6px">
+  <hr>
+  <b>Görev Seç</b>
+  <div id="missionButtons"></div>
+ </div>
+</div>
+
+<div style="margin-top:12px;background:#fff;padding:10px;border-radius:12px">
+<b>♻️ Geri Dönüşüm</b>
+<div id="recycleItems" style="display:flex;gap:8px;margin:8px 0"></div>
+<div style="display:flex;gap:8px">
+ <div class="bin" onclick="dropRecycle('plastic')">Plastik</div>
+ <div class="bin" onclick="dropRecycle('paper')">Kağıt</div>
+ <div class="bin" onclick="dropRecycle('metal')">Metal</div>
+</div>
+</div>
+</div>
+
+<script>
+/* ================== SHEET ================== */
+const SHEET_URL="https://script.google.com/macros/s/AKfycbxuRkQd2SJiXskC04DJ2IIron5ogdKnCBiMyL2EVrcGOql44oGmMdQFy_FqZVkjCarD/exec";
+
+/* ================== STATE ================== */
+let score=0,collected=0;
+let selectedRecycle=null;
+let currentMission=null;
+
+/* ================== DATA ================== */
+const trashTypes=[
+ {type:"plastic",emoji:"🥤"},
+ {type:"paper",emoji:"📄"},
+ {type:"metal",emoji:"🥫"}
+];
+
+const missions=[
+ {text:"5 Plastik Topla",type:"plastic",need:5,have:0},
+ {text:"3 Metal Topla",type:"metal",need:3,have:0},
+ {text:"4 Kağıt Topla",type:"paper",need:4,have:0}
+];
+
+const area=document.getElementById("area");
+
+/* ================== SPAWN ================== */
+function spawnTrash(){
+ const t=trashTypes[Math.floor(Math.random()*trashTypes.length)];
+ const d=document.createElement("div");
+ d.className="trash";
+ d.textContent=t.emoji;
+ d.dataset.type=t.type;
+ d.style.left=Math.random()*85+"%";
+ d.style.top=Math.random()*55+25+"%";
+ area.appendChild(d);
+
+ const collect=()=>{
+  d.remove();
+  collected++;
+  score+=5;
+  addRecycleItem(t);
+  updateUI();
+  saveScore(5);
+
+  if(currentMission && currentMission.type===t.type){
+   currentMission.have++;
+   updateMissionText();
+   if(currentMission.have>=currentMission.need){
+    score+=50;
+    alert("🎉 Görev Tamamlandı +50!");
+    currentMission=null;
+    document.getElementById("missionText").innerText="Yok";
+    renderMissionButtons();
+    updateUI();
+    saveScore(50);
+   }
+  }
+ };
+
+ d.addEventListener("click",collect);
+ d.addEventListener("touchstart",e=>{e.preventDefault();collect();},{passive:false});
+}
+
+function spawnFish(){
+ const f=document.createElement("div");
+ f.className="fish";
+ f.textContent=Math.random()>0.5?"🐟":"🐠";
+ f.style.left="100%";
+ f.style.top=Math.random()*30+40+"%";
+ area.appendChild(f);
+ let x=100;
+ const i=setInterval(()=>{
+  x-=0.15;
+  f.style.left=x+"%";
+  if(x<-10){clearInterval(i);f.remove();}
+ },30);
+}
+
+/* ================== RECYCLE ================== */
+function addRecycleItem(t){
+ const el=document.createElement("div");
+ el.className="recycleItem";
+ el.textContent=t.emoji;
+ el.dataset.type=t.type;
+ el.onclick=()=>{
+  document.querySelectorAll(".recycleItem").forEach(i=>i.classList.remove("selected"));
+  el.classList.add("selected");
+  selectedRecycle=el;
+ };
+ document.getElementById("recycleItems").appendChild(el);
+}
+
+function dropRecycle(type){
+ if(!selectedRecycle) return;
+ score += selectedRecycle.dataset.type===type ? 10 : -5;
+ selectedRecycle.remove();
+ selectedRecycle=null;
+ updateUI();
+ saveScore(0);
+}
+
+/* ================== MISSIONS ================== */
+function renderMissionButtons(){
+ const box=document.getElementById("missionButtons");
+ box.innerHTML="";
+ missions.forEach(m=>{
+  const b=document.createElement("button");
+  b.textContent=m.text;
+  b.onclick=()=>{
+   currentMission={...m,have:0};
+   updateMissionText();
+   box.innerHTML="";
+  };
+  box.appendChild(b);
+ });
+}
+
+function updateMissionText(){
+ if(currentMission){
+  document.getElementById("missionText").innerText=
+   `${currentMission.text} (${currentMission.have}/${currentMission.need})`;
+ }
+}
+
+/* ================== UI ================== */
+function updateUI(){
+ document.getElementById("score").innerText=score;
+ document.getElementById("count").innerText=collected;
+}
+
+/* ================== SHEET SAVE (SAĞLAM) ================== */
+function saveScore(v){
+ const name=document.getElementById("playerName").value.trim();
+ if(!name) return;
+
+ const data=new URLSearchParams();
+ data.append("name",name);
+ data.append("score",v);
+ data.append("action","increment");
+
+ fetch(SHEET_URL,{
+  method:"POST",
+  body:data
+ }).catch(()=>{});
+}
+
+/* ================== START ================== */
+renderMissionButtons();
+setInterval(spawnTrash,1200);
+setInterval(spawnFish,4500);
+</script>
+</body>
+</html><div id="wrap">
 <h2>🌍 Deniz Temizliği & Geri Dönüşüm</h2>
 
 <div id="area">
@@ -212,3 +397,4 @@ setInterval(spawnFish,4500);
 </body>
 
 </html>
+
