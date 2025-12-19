@@ -26,7 +26,10 @@ background:linear-gradient(#3fb6e6,#2f9ccb)}
  position:absolute;left:10px;top:10px;
  background:#fff;padding:8px;border-radius:10px
 }
-button{background:#1aa260;color:#fff;border:0;border-radius:8px;padding:6px 10px;margin:4px 0}
+button{
+ background:#1aa260;color:#fff;border:0;
+ border-radius:8px;padding:6px 10px;margin-top:6px;width:100%
+}
 .recycleItem{font-size:26px;cursor:pointer;padding:4px;border-radius:6px}
 .recycleItem.selected{background:#c7f9cc}
 .bin{flex:1;background:#f3f4f6;padding:8px;border-radius:8px;text-align:center;font-weight:bold}
@@ -49,7 +52,10 @@ button{background:#1aa260;color:#fff;border:0;border-radius:8px;padding:6px 10px
   <b>Toplam Toplanan Çöp</b>
   <div id="count" style="font-size:22px;text-align:center">0</div>
   <hr>
+
   <input id="playerName" placeholder="İsmin" style="width:100%;padding:6px">
+  <button onclick="registerPlayer()">💾 Kaydet</button>
+
   <hr>
   <b>Görev Seç</b>
   <div id="missionButtons"></div>
@@ -69,14 +75,15 @@ button{background:#1aa260;color:#fff;border:0;border-radius:8px;padding:6px 10px
 </div>
 
 <script>
-/* ===== SHEET (GÜNCEL) ===== */
+/* ===== SHEET URL (YENİ) ===== */
 const SHEET_URL="https://script.google.com/macros/s/AKfycbzoB233SlJilrAf59pxLMvlBVTcq9dYnqYCLYEH8FHGhKGOmd3RGZrYtkMD7W9PHK9y/exec";
 
-/* ===== STATE ===== */
 let score=0,collected=0;
 let selectedRecycle=null;
 let currentMission=null;
+let registered=false;
 
+/* ===== DATA ===== */
 const trashTypes=[
  {type:"plastic",emoji:"🥤"},
  {type:"paper",emoji:"📄"},
@@ -91,6 +98,22 @@ const missions=[
 
 const area=document.getElementById("area");
 
+/* ===== REGISTER ===== */
+function registerPlayer(){
+ const name=document.getElementById("playerName").value.trim();
+ if(!name){alert("İsim gir");return;}
+
+ fetch(SHEET_URL,{
+  method:"POST",
+  headers:{"Content-Type":"application/json"},
+  body:JSON.stringify({
+    action:"register",
+    name:name
+  })
+ }).then(()=>{registered=true;alert("✅ Kaydedildi");});
+}
+
+/* ===== SPAWN ===== */
 function spawnTrash(){
  const t=trashTypes[Math.floor(Math.random()*trashTypes.length)];
  const d=document.createElement("div");
@@ -103,8 +126,7 @@ function spawnTrash(){
 
  const collect=()=>{
   d.remove();
-  collected++;
-  score+=5;
+  collected++; score+=5;
   addRecycleItem(t);
   updateUI();
   saveScore(5);
@@ -124,8 +146,8 @@ function spawnTrash(){
   }
  };
 
- d.addEventListener("click",collect);
- d.addEventListener("touchstart",e=>{e.preventDefault();collect();},{passive:false});
+ d.onclick=collect;
+ d.ontouchstart=e=>{e.preventDefault();collect();}
 }
 
 function spawnFish(){
@@ -137,12 +159,12 @@ function spawnFish(){
  area.appendChild(f);
  let x=100;
  const i=setInterval(()=>{
-  x-=0.15;
-  f.style.left=x+"%";
+  x-=0.15;f.style.left=x+"%";
   if(x<-10){clearInterval(i);f.remove();}
  },30);
 }
 
+/* ===== RECYCLE ===== */
 function addRecycleItem(t){
  const el=document.createElement("div");
  el.className="recycleItem";
@@ -158,13 +180,14 @@ function addRecycleItem(t){
 
 function dropRecycle(type){
  if(!selectedRecycle) return;
- score += selectedRecycle.dataset.type===type ? 10 : -5;
+ score+= selectedRecycle.dataset.type===type ? 10 : -5;
  selectedRecycle.remove();
  selectedRecycle=null;
  updateUI();
  saveScore(0);
 }
 
+/* ===== MISSIONS ===== */
 function renderMissionButtons(){
  const box=document.getElementById("missionButtons");
  box.innerHTML="";
@@ -187,21 +210,28 @@ function updateMissionText(){
  }
 }
 
+/* ===== SCORE ===== */
 function updateUI(){
  document.getElementById("score").innerText=score;
  document.getElementById("count").innerText=collected;
 }
 
 function saveScore(v){
+ if(!registered) return;
  const name=document.getElementById("playerName").value.trim();
- if(!name) return;
- const data=new URLSearchParams();
- data.append("name",name);
- data.append("score",v);
- data.append("action","increment");
- fetch(SHEET_URL,{method:"POST",body:data}).catch(()=>{});
+
+ fetch(SHEET_URL,{
+  method:"POST",
+  headers:{"Content-Type":"application/json"},
+  body:JSON.stringify({
+    action:"increment",
+    name:name,
+    score:v
+  })
+ });
 }
 
+/* ===== START ===== */
 renderMissionButtons();
 setInterval(spawnTrash,1200);
 setInterval(spawnFish,4500);
