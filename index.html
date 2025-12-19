@@ -35,7 +35,6 @@ button{background:#1aa260;color:#fff;border:0;border-radius:8px;padding:6px 10px
 
 <body>
 <div id="wrap">
-<h2>🌍 Deniz Temizliği & Geri Dönüşüm</h2>
 
 <div id="area">
  <div class="sea"></div>
@@ -66,18 +65,16 @@ button{background:#1aa260;color:#fff;border:0;border-radius:8px;padding:6px 10px
  <div class="bin" onclick="dropRecycle('metal')">Metal</div>
 </div>
 </div>
+
 </div>
 
 <script>
-/* ================== SHEET ================== */
 const SHEET_URL="https://script.google.com/macros/s/AKfycbxuRkQd2SJiXskC04DJ2IIron5ogdKnCBiMyL2EVrcGOql44oGmMdQFy_FqZVkjCarD/exec";
 
-/* ================== STATE ================== */
 let score=0,collected=0;
 let selectedRecycle=null;
 let currentMission=null;
 
-/* ================== DATA ================== */
 const trashTypes=[
  {type:"plastic",emoji:"🥤"},
  {type:"paper",emoji:"📄"},
@@ -92,7 +89,6 @@ const missions=[
 
 const area=document.getElementById("area");
 
-/* ================== SPAWN ================== */
 function spawnTrash(){
  const t=trashTypes[Math.floor(Math.random()*trashTypes.length)];
  const d=document.createElement("div");
@@ -145,7 +141,6 @@ function spawnFish(){
  },30);
 }
 
-/* ================== RECYCLE ================== */
 function addRecycleItem(t){
  const el=document.createElement("div");
  el.className="recycleItem";
@@ -168,7 +163,6 @@ function dropRecycle(type){
  saveScore(0);
 }
 
-/* ================== MISSIONS ================== */
 function renderMissionButtons(){
  const box=document.getElementById("missionButtons");
  box.innerHTML="";
@@ -191,29 +185,21 @@ function updateMissionText(){
  }
 }
 
-/* ================== UI ================== */
 function updateUI(){
  document.getElementById("score").innerText=score;
  document.getElementById("count").innerText=collected;
 }
 
-/* ================== SHEET SAVE (SAĞLAM) ================== */
 function saveScore(v){
  const name=document.getElementById("playerName").value.trim();
  if(!name) return;
-
  const data=new URLSearchParams();
  data.append("name",name);
  data.append("score",v);
  data.append("action","increment");
-
- fetch(SHEET_URL,{
-  method:"POST",
-  body:data
- }).catch(()=>{});
+ fetch(SHEET_URL,{method:"POST",body:data}).catch(()=>{});
 }
 
-/* ================== START ================== */
 renderMissionButtons();
 setInterval(spawnTrash,1200);
 setInterval(spawnFish,4500);
